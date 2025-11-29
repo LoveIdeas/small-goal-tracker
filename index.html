@@ -1,10 +1,9 @@
-'''
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>소규모 목표 트래커</title>
+    <title>small goal tracker</title>
     <style>
         /* style.css - 7차 수정 버전 (통합) */
 
@@ -32,9 +31,10 @@
         /* 헤더 및 주제 관리 */
         .header {
             text-align: center;
-            margin-bottom: 20px; /* 간격 조정 */
+            margin-bottom: 30px;
             flex-shrink: 0;
-            padding-top: 40px; /* 상단 여백 확대 */
+            padding: 30px 20px 20px 20px;
+            width: 100%;
         }
 
         .topic-controls {
@@ -89,20 +89,22 @@
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            justify-content: center; /* 목표 목록 수직 중앙 정렬 */
+            justify-content: flex-start;
             align-items: center;
             overflow: auto;
-            padding: 10px 0;
+            padding: 20px;
             width: 100%;
+            max-width: 1200px;
         }
 
         #goal-container {
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             justify-content: center;
             align-items: center;
-            gap: 30px;
-            padding: 20px 0;
+            gap: 40px;
+            padding: 40px 20px;
+            margin: auto 0;
         }
 
         .goal-item {
@@ -113,26 +115,29 @@
 
         /* 목표 동그라미 (Goal Circle) */
         .goal-circle {
-            width: 180px;
-            height: 180px;
-            border: 4px solid #8BC34A;
+            width: 200px;
+            height: 200px;
+            border: 5px solid #8BC34A;
             border-radius: 50%;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
-            padding: 15px;
+            padding: 20px;
             box-sizing: border-box;
             cursor: pointer;
-            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s, transform 0.2s, box-shadow 0.2s;
             position: relative;
             user-select: none;
             background-color: white;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
         }
 
         .goal-circle:hover {
             background-color: #f0fff0;
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
         }
 
         .goal-circle.completed {
@@ -142,9 +147,10 @@
         }
 
         .goal-text {
-            font-size: 1.3em;
-            line-height: 1.4;
+            font-size: 1.2em;
+            line-height: 1.5;
             word-break: keep-all;
+            font-weight: 500;
         }
 
         /* 목표 관리 버튼 (완료/수정/삭제) */
@@ -192,42 +198,45 @@
 
         /* 화살표 (Arrow) */
         .goal-arrow {
-            width: 80px;
-            height: 4px;
-            background-color: #000;
+            width: 60px;
+            height: 5px;
+            background-color: #333;
             position: relative;
-            margin: 0 20px;
+            margin: 0 15px;
             flex-shrink: 0;
         }
 
         .goal-arrow::after {
             content: '';
             position: absolute;
-            right: -8px;
+            right: -10px;
             top: 50%;
             transform: translateY(-50%) rotate(45deg);
-            width: 12px;
-            height: 12px;
-            border-top: 4px solid #000;
-            border-right: 4px solid #000;
+            width: 14px;
+            height: 14px;
+            border-top: 5px solid #333;
+            border-right: 5px solid #333;
         }
 
         /* 목표 추가 버튼 */
         #add-goal-btn {
-            margin-top: 20px;
-            padding: 12px 25px;
-            font-size: 1.2em;
+            margin-top: 30px;
+            padding: 14px 30px;
+            font-size: 1.1em;
             background-color: #4CAF50;
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, transform 0.2s;
             flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
         #add-goal-btn:hover {
             background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
 
         /* 모달 공통 스타일 */
@@ -479,9 +488,7 @@
         </div>
 
         <!-- 목표 추가 버튼 -->
-        <div style="text-align: center; margin-top: 30px;">
-            <button id="add-goal-btn">소규모 목표 추가</button>
-        </div>
+        <button id="add-goal-btn">소규모 목표 추가</button>
     </main>
 
     <!-- 주제 설정 모달 -->
@@ -960,4 +967,3 @@
     </script>
 </body>
 </html>
-'''
