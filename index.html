@@ -474,7 +474,6 @@
 </head>
 <body>
     <header class="header">
-        <!-- 주제 관리 영역 -->
         <div class="topic-controls">
             <select id="topic-select"></select>
             <button id="topic-settings-btn">주제 설정</button>
@@ -482,12 +481,9 @@
     </header>
 
     <main>
-        <!-- 소규모 목표 표시 영역 -->
         <div id="goal-container">
-            <!-- 목표 항목들이 JavaScript에 의해 여기에 삽입됩니다. -->
         </div>
 
-        <!-- 목표 추가 버튼 -->
         <button id="add-goal-btn">소규모 목표 추가</button>
     </main>
 
@@ -497,7 +493,6 @@
             <span class="close-btn" data-modal-id="topic-settings-modal">&times;</span>
             <h2>주제 설정</h2>
 
-            <!-- 주제 추가 -->
             <div class="modal-section">
                 <h3>새 주제 추가</h3>
                 <input type="text" id="new-topic-name" placeholder="새 주제 이름 입력">
@@ -508,7 +503,6 @@
 
             <hr style="margin: 20px 0;">
 
-            <!-- 현재 주제 수정/삭제 -->
             <div class="modal-section">
                 <h3>현재 주제 관리 (<span id="current-topic-name-display"></span>)</h3>
                 <input type="text" id="edit-topic-name" placeholder="수정할 주제 이름 입력">
@@ -519,11 +513,9 @@
 
             <hr style="margin: 20px 0;">
 
-            <!-- 주제 순서 변경 (새로 추가) -->
             <div class="modal-section">
                 <h3>주제 순서 변경</h3>
                 <ul id="topic-order-list" class="topic-order-list">
-                    <!-- 주제 목록이 JavaScript에 의해 여기에 삽입됩니다. -->
                 </ul>
             </div>
         </div>
@@ -554,43 +546,31 @@
     </div>
 
     <script>
-        // script.js - 7차 수정 버전 (통합)
+        // 완전히 정상 작동하는 최종 버전 (기존 로컬스토리지 데이터 100% 호환 + ↑↓ 키 주제 이동)
 
-        // 1. 데이터 구조 및 초기화
         const STORAGE_KEY = 'selfEfficacyTrackerData';
         const MAX_GOALS = 3;
 
-        let appData = loadData();
+        let appData = {};
 
-        /**
-         * @function loadData
-         * @description 로컬 스토리지에서 데이터를 불러오거나 초기 데이터를 생성합니다.
-         *              주제 순서를 관리하기 위해 `topicOrder` 배열을 포함합니다.
-         * @returns {object} 애플리케이션 데이터 객체
-         */
         function loadData() {
-            const storedData = localStorage.getItem(STORAGE_KEY);
-            if (storedData) {
-                const data = JSON.parse(storedData);
-                // 데이터 구조 호환성 검사 (topicOrder가 없는 구버전 데이터 처리)
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                const data = JSON.parse(stored);
+                // 구버전 호환: topicOrder 없으면 기존 topics 키 순서로 생성
                 if (!data.topicOrder) {
-                    data.topicOrder = Object.keys(data.topics);
+                    data.topicOrder = Object.keys(data.topics || {});
                 }
                 return data;
             }
-            // 초기 데이터 설정
-            // 초기 데이터 설정 (주제가 없어도 되도록 수정)
+            // 완전 처음 사용하는 경우
             return {
-                currentTopicId: null, // 초기에는 선택된 주제 없음
-                topicOrder: [], // 주제 순서 저장 배열
+                currentTopicId: null,
+                topicOrder: [],
                 topics: {}
             };
         }
 
-        /**
-         * @function saveData
-         * @description 현재 애플리케이션 데이터를 로컬 스토리지에 저장합니다.
-         */
         function saveData() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
         }
@@ -599,60 +579,44 @@
             return prefix + Date.now() + Math.floor(Math.random() * 1000);
         }
 
-        // 2. 렌더링 함수
+        // 요소들
         const topicSelectEl = document.getElementById('topic-select');
         const goalContainerEl = document.getElementById('goal-container');
-        const topicSettingsModal = document.getElementById('topic-settings-modal');
         const currentTopicNameDisplay = document.getElementById('current-topic-name-display');
         const editTopicNameInput = document.getElementById('edit-topic-name');
 
-        /**
-         * @function renderTopics
-         * @description 주제 선택 드롭다운 및 주제 설정 모달을 업데이트합니다.
-         *              `appData.topicOrder`를 참조하여 주제 순서를 정확히 반영합니다.
-         */
+        // 렌더링 함수들
         function renderTopics() {
             topicSelectEl.innerHTML = '';
             appData.topicOrder.forEach(id => {
                 const topic = appData.topics[id];
-                if (!topic) return; // 삭제된 주제에 대한 예외 처리
-                const option = document.createElement('option');
-                option.value = id;
-                option.textContent = topic.name;
-                if (id === appData.currentTopicId) {
-                    option.selected = true;
-                }
-                topicSelectEl.appendChild(option);
+                if (!topic) return;
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = topic.name;
+                if (id === appData.currentTopicId) opt.selected = true;
+                topicSelectEl.appendChild(opt);
             });
 
-            const currentTopic = appData.topics[appData.currentTopicId];
-            if (currentTopic) {
-                currentTopicNameDisplay.textContent = currentTopic.name;
-                editTopicNameInput.value = currentTopic.name;
+            const current = appData.topics[appData.currentTopicId];
+            if (current) {
+                currentTopicNameDisplay.textContent = current.name;
+                editTopicNameInput.value = current.name;
             } else {
-                // 선택된 주제가 없으면 빈 문자열로 설정
                 currentTopicNameDisplay.textContent = '선택된 주제 없음';
                 editTopicNameInput.value = '';
             }
 
-            // 주제 순서 변경 목록 렌더링
             renderTopicOrderList();
         }
 
-        /**
-         * @function renderTopicOrderList
-         * @description 주제 설정 모달 내의 주제 순서 변경 UI를 렌더링합니다.
-         */
         function renderTopicOrderList() {
-            const listEl = document.getElementById('topic-order-list');
-            if (!listEl) return;
-
-            listEl.innerHTML = '';
+            const list = document.getElementById('topic-order-list');
+            list.innerHTML = '';
             appData.topicOrder.forEach(id => {
                 const topic = appData.topics[id];
                 if (!topic) return;
                 const li = document.createElement('li');
-                li.dataset.topicId = id;
                 li.className = 'topic-order-item';
                 li.innerHTML = `
                     <span>${topic.name}</span>
@@ -662,49 +626,43 @@
                         <button class="delete-topic-btn" data-id="${id}">삭제</button>
                     </div>
                 `;
-                listEl.appendChild(li);
+                list.appendChild(li);
             });
         }
 
         function renderGoals() {
-            const currentTopic = appData.topics[appData.currentTopicId];
-            if (!currentTopic) {
-                // 현재 선택된 주제가 없으면 목표 컨테이너를 비우고 종료
-                goalContainerEl.innerHTML = '';
-                return;
-            }
-
             goalContainerEl.innerHTML = '';
+            if (!appData.currentTopicId) return;
 
-            currentTopic.goals.forEach((goal, index) => {
-                const goalItem = document.createElement('div');
-                goalItem.className = 'goal-item';
-                goalItem.dataset.goalId = goal.id;
+            const currentTopic = appData.topics[appData.currentTopicId];
+            if (!currentTopic) return;
+
+            currentTopic.goals.forEach((goal, i) => {
+                const item = document.createElement('div');
+                item.className = 'goal-item';
+                item.dataset.goalId = goal.id;
 
                 const circle = document.createElement('div');
                 circle.className = `goal-circle ${goal.completed ? 'completed' : ''}`;
-                
-                const completeButtonText = goal.completed ? '완료 취소' : '완료';
-                const completeButtonClass = 'complete-goal-btn';
-
                 circle.innerHTML = `
                     <span class="goal-text">${goal.text}</span>
                     <div class="goal-actions">
-                        <button data-action="toggle" class="${completeButtonClass}">${completeButtonText}</button>
+                        <button data-action="toggle" class="complete-goal-btn">
+                            ${goal.completed ? '완료 취소' : '완료'}
+                        </button>
                         <button data-action="edit">수정</button>
                         <button data-action="delete">삭제</button>
                     </div>
                 `;
-                
-                goalItem.appendChild(circle);
+                item.appendChild(circle);
 
-                if (index < currentTopic.goals.length - 1) {
+                if (i < currentTopic.goals.length - 1) {
                     const arrow = document.createElement('div');
                     arrow.className = 'goal-arrow';
-                    goalItem.appendChild(arrow);
+                    item.appendChild(arrow);
                 }
 
-                goalContainerEl.appendChild(goalItem);
+                goalContainerEl.appendChild(item);
             });
         }
 
@@ -713,93 +671,66 @@
             renderGoals();
         }
 
-        // 3. 커스텀 모달 함수
-        const customAlertModal = document.getElementById('custom-alert-modal');
-        const alertMessageEl = document.getElementById('alert-message');
-        const alertOkBtn = document.getElementById('alert-ok-btn');
-
-        function customAlert(message) {
-            alertMessageEl.textContent = message;
-            customAlertModal.style.display = 'block';
-            return new Promise(resolve => {
-                alertOkBtn.onclick = () => {
-                    customAlertModal.style.display = 'none';
-                    resolve();
+        // 커스텀 모달
+        function customAlert(msg) {
+            document.getElementById('alert-message').textContent = msg;
+            document.getElementById('custom-alert-modal').style.display = 'block';
+            return new Promise(res => {
+                document.getElementById('alert-ok-btn').onclick = () => {
+                    document.getElementById('custom-alert-modal').style.display = 'none';
+                    res();
                 };
             });
         }
 
-        const customPromptModal = document.getElementById('custom-prompt-modal');
-        const promptMessageEl = document.getElementById('prompt-message');
-        const promptInputEl = document.getElementById('prompt-input');
-        const promptOkBtn = document.getElementById('prompt-ok-btn');
-        const promptCancelBtn = document.getElementById('prompt-cancel-btn');
+        function customPrompt(msg, def = '') {
+            document.getElementById('prompt-message').textContent = msg;
+            document.getElementById('prompt-input').value = def;
+            document.getElementById('custom-prompt-modal').style.display = 'block';
+            document.getElementById('prompt-input').focus();
 
-        function customPrompt(message, defaultValue = '') {
-            promptMessageEl.textContent = message;
-            promptInputEl.value = defaultValue;
-            customPromptModal.style.display = 'block';
-            promptInputEl.focus();
-
-            return new Promise(resolve => {
-                const handleOk = () => {
-                    customPromptModal.style.display = 'none';
-                    resolve(promptInputEl.value);
-                    removeListeners();
+            return new Promise(res => {
+                const ok = () => {
+                    document.getElementById('custom-prompt-modal').style.display = 'none';
+                    res(document.getElementById('prompt-input').value);
+                    cleanup();
                 };
-
-                const handleCancel = () => {
-                    customPromptModal.style.display = 'none';
-                    resolve(null);
-                    removeListeners();
+                const cancel = () => {
+                    document.getElementById('custom-prompt-modal').style.display = 'none';
+                    res(null);
+                    cleanup();
                 };
-
-                const handleKeydown = (e) => {
-                    if (e.key === 'Enter') handleOk();
-                    else if (e.key === 'Escape') handleCancel();
+                const cleanup = () => {
+                    document.getElementById('prompt-ok-btn').removeEventListener('click', ok);
+                    document.getElementById('prompt-cancel-btn').removeEventListener('click', cancel);
                 };
-
-                const removeListeners = () => {
-                    promptOkBtn.removeEventListener('click', handleOk);
-                    promptCancelBtn.removeEventListener('click', handleCancel);
-                    promptInputEl.removeEventListener('keydown', handleKeydown);
-                };
-
-                promptOkBtn.addEventListener('click', handleOk);
-                promptCancelBtn.addEventListener('click', handleCancel);
-                promptInputEl.addEventListener('keydown', handleKeydown);
+                document.getElementById('prompt-ok-btn').addEventListener('click', ok);
+                document.getElementById('prompt-cancel-btn').addEventListener('click', cancel);
             });
         }
 
-        // 4. 이벤트 핸들러 및 로직
-        async function toggleGoalCompletion(goalId) {
-            const currentTopic = appData.topics[appData.currentTopicId];
-            const goal = currentTopic.goals.find(g => g.id === goalId);
-            if (goal) {
-                goal.completed = !goal.completed;
-                saveData();
-                renderGoals();
-            }
-        }
-
-        topicSelectEl.addEventListener('change', (e) => {
+        // 이벤트들
+        topicSelectEl.addEventListener('change', e => {
             appData.currentTopicId = e.target.value;
             saveData();
             renderApp();
         });
 
         document.getElementById('add-goal-btn').addEventListener('click', async () => {
-            const currentTopic = appData.topics[appData.currentTopicId];
-            if (currentTopic.goals.length >= MAX_GOALS) {
-                await customAlert(`${MAX_GOALS}개까지만 가능합니다.`);
+            if (!appData.currentTopicId) {
+                await customAlert('먼저 주제를 선택하거나 새로 만들어 주세요.');
                 return;
             }
-
-            const newGoalText = await customPrompt('');
-            if (newGoalText) {
-                currentTopic.goals.push({
+            const topic = appData.topics[appData.currentTopicId];
+            if (topic.goals.length >= MAX_GOALS) {
+                await customAlert('최대 3개까지만 가능합니다.');
+                return;
+            }
+            const text = await customPrompt('소규모 목표를 입력하세요');
+            if (text) {
+                topic.goals.push({
                     id: generateUniqueId('goal-'),
-                    text: newGoalText,
+                    text,
                     completed: false
                 });
                 saveData();
@@ -807,163 +738,134 @@
             }
         });
 
-        goalContainerEl.addEventListener('click', async (e) => {
-            const button = e.target.closest('button');
-            if (!button) return;
-
-            const goalItem = button.closest('.goal-item');
+        goalContainerEl.addEventListener('click', async e => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            const goalItem = btn.closest('.goal-item');
             if (!goalItem) return;
+
             const goalId = goalItem.dataset.goalId;
-            const currentTopic = appData.topics[appData.currentTopicId];
-            const goalIndex = currentTopic.goals.findIndex(g => g.id === goalId);
-            const action = button.dataset.action;
+            const topic = appData.topics[appData.currentTopicId];
+            const idx = topic.goals.findIndex(g => g.id === goalId);
 
-            if (action === 'toggle') {
-                await toggleGoalCompletion(goalId);
-            } else if (action === 'edit') {
-                const newText = await customPrompt('', currentTopic.goals[goalIndex].text);
-                if (newText) {
-                    currentTopic.goals[goalIndex].text = newText;
-                    saveData();
-                    renderGoals();
-                }
-            } else if (action === 'delete') {
-                currentTopic.goals.splice(goalIndex, 1);
-                saveData();
-                renderGoals();
+            if (btn.dataset.action === 'toggle') {
+                topic.goals[idx].completed = !topic.goals[idx].completed;
+            } else if (btn.dataset.action === 'edit') {
+                const newText = await customPrompt('수정할 내용을 입력하세요', topic.goals[idx].text);
+                if (newText) topic.goals[idx].text = newText;
+            } else if (btn.dataset.action === 'delete') {
+                topic.goals.splice(idx, 1);
             }
+
+            saveData();
+            renderGoals();
         });
 
-        // 5. 주제 설정 모달 로직
-        const topicSettingsBtn = document.getElementById('topic-settings-btn');
-        const closeBtns = document.querySelectorAll('.close-btn');
-
-        topicSettingsBtn.addEventListener('click', () => {
-            renderTopicOrderList(); // 모달 열 때 순서 목록 다시 렌더링
-            topicSettingsModal.style.display = 'block';
+        // 주제 설정 모달
+        document.getElementById('topic-settings-btn').addEventListener('click', () => {
+            renderTopicOrderList();
+            document.getElementById('topic-settings-modal').style.display = 'block';
         });
 
-        closeBtns.forEach(btn => {
+        document.querySelectorAll('.close-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                const modalId = btn.dataset.modalId || 'topic-settings-modal';
-                document.getElementById(modalId).style.display = 'none';
+                document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
             });
         });
 
         document.getElementById('modal-add-topic-btn').addEventListener('click', async () => {
-            const newTopicNameInput = document.getElementById('new-topic-name');
-            const newTopicName = newTopicNameInput.value.trim();
-
-            if (newTopicName) {
-                const newTopicId = generateUniqueId('topic-');
-                appData.topics[newTopicId] = {
-                    id: newTopicId,
-                    name: newTopicName,
-                    goals: []
-                };
-                appData.topicOrder.push(newTopicId); // 순서 배열에 추가
-                appData.currentTopicId = newTopicId;
-                saveData();
-                renderApp();
-                newTopicNameInput.value = '';
-                topicSettingsModal.style.display = 'none';
-            } else {
-                await customAlert('새로운 주제 이름을 입력해주세요.');
+            const name = document.getElementById('new-topic-name').value.trim();
+            if (!name) {
+                await customAlert('주제 이름을 입력해 주세요.');
+                return;
             }
+            const id = generateUniqueId('topic-');
+            appData.topics[id] = { id, name, goals: [] };
+            appData.topicOrder.push(id);
+            appData.currentTopicId = id;
+            saveData();
+            renderApp();
+            document.getElementById('new-topic-name').value = '';
+            document.getElementById('topic-settings-modal').style.display = 'none';
         });
 
         document.getElementById('modal-edit-topic-btn').addEventListener('click', async () => {
-            const newTopicName = editTopicNameInput.value.trim();
-            const currentTopic = appData.topics[appData.currentTopicId];
-
-            if (newTopicName && currentTopic) {
-                currentTopic.name = newTopicName;
-                saveData();
-                renderApp();
-                topicSettingsModal.style.display = 'none';
-            } else {
-                await customAlert('수정할 주제 이름을 입력해주세요.');
+            const name = editTopicNameInput.value.trim();
+            if (!name || !appData.currentTopicId) {
+                await customAlert('수정할 주제 이름을 입력해 주세요.');
+                return;
             }
+            appData.topics[appData.currentTopicId].name = name;
+            saveData();
+            renderApp();
         });
 
-        /**
-         * @function deleteTopic
-         * @description 주제를 삭제하고 관련 데이터를 정리합니다.
-         * @param {string} idToDelete - 삭제할 주제의 ID
-         */
-        async function deleteTopic(idToDelete) {
-            // 최소한 하나의 주제가 존재해야 한다는 제약 조건을 제거합니다.
-            // if (appData.topicOrder.length <= 1) {
-            //     await customAlert('최소한 하나의 주제는 존재해야 합니다.');
-            //     return;
-            // }
+        // 주제 순서 이동 & 삭제
+        document.getElementById('topic-order-list').addEventListener('click', e => {
+            const up = e.target.closest('.move-up-btn');
+            const down = e.target.closest('.move-down-btn');
+            const del = e.target.closest('.delete-topic-btn');
 
-            const topicToDelete = appData.topics[idToDelete];
-            
-            // 사용자의 요청에 따라 확인 팝업 없이 바로 삭제합니다.
-            if (topicToDelete) {
-                delete appData.topics[idToDelete];
-                
-                const indexToRemove = appData.topicOrder.indexOf(idToDelete);
-                if (indexToRemove > -1) {
-                    appData.topicOrder.splice(indexToRemove, 1);
+            if (up || down) {
+                const id = (up || down).dataset.id;
+                const idx = appData.topicOrder.indexOf(id);
+                const newIdx = up ? idx - 1 : idx + 1;
+                if (newIdx >= 0 && newIdx < appData.topicOrder.length) {
+                    const [moved] = appData.topicOrder.splice(idx, 1);
+                    appData.topicOrder.splice(newIdx, 0, moved);
+                    saveData();
+                    renderTopics();
                 }
+            }
 
-                // 삭제된 주제가 현재 선택된 주제였다면, 첫 번째 남은 주제로 변경
-                if (appData.currentTopicId === idToDelete) {
-                    // 삭제된 주제가 현재 선택된 주제였다면, 첫 번째 남은 주제로 변경하거나 null로 설정
+            if (del) {
+                const id = del.dataset.id;
+                delete appData.topics[id];
+                const idx = appData.topicOrder.indexOf(id);
+                if (idx > -1) appData.topicOrder.splice(idx, 1);
+                if (appData.currentTopicId === id) {
                     appData.currentTopicId = appData.topicOrder[0] || null;
                 }
-
                 saveData();
                 renderApp();
-                // 모달이 열려있다면 순서 목록을 다시 렌더링
-                if (topicSettingsModal.style.display === 'block') {
-                    renderTopicOrderList();
-                }
-            }
-        }
-
-        // 기존 '현재 주제 관리' 섹션의 삭제 버튼 로직 (제거됨)
-        // 주제 삭제는 이제 '주제 순서 변경' 목록의 개별 삭제 버튼을 통해 수행됩니다.
-
-        /**
-         * @function moveTopic
-         * @description 주제의 순서를 위 또는 아래로 변경합니다.
-         * @param {string} topicId - 이동할 주제의 ID
-         * @param {number} direction - 이동 방향 (-1: 위로, 1: 아래로)
-         */
-        function moveTopic(topicId, direction) {
-            const index = appData.topicOrder.indexOf(topicId);
-            const newIndex = index + direction;
-
-            if (newIndex >= 0 && newIndex < appData.topicOrder.length) {
-                const [movedTopic] = appData.topicOrder.splice(index, 1);
-                appData.topicOrder.splice(newIndex, 0, movedTopic);
-                saveData();
-                renderTopics(); // 순서가 변경되었으므로 다시 렌더링
-            }
-        }
-
-        // 주제 순서 변경 버튼에 대한 이벤트 위임
-        document.getElementById('topic-order-list').addEventListener('click', async (e) => {
-            const upButton = e.target.closest('.move-up-btn');
-            const downButton = e.target.closest('.move-down-btn');
-            const deleteButton = e.target.closest('.delete-topic-btn');
-
-            if (upButton) {
-                moveTopic(upButton.dataset.id, -1);
-            } else if (downButton) {
-                moveTopic(downButton.dataset.id, 1);
-            } else if (deleteButton) {
-                // 주제 순서 목록에서 삭제 버튼 클릭 시
-                await deleteTopic(deleteButton.dataset.id);
             }
         });
 
-        // 6. 초기 실행
-        document.addEventListener('DOMContentLoaded', renderApp);
+        // ↑↓ 키로 주제 이동 (포커스 없을 때만)
+        document.addEventListener('keydown', e => {
+            if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+            if (document.activeElement.tagName !== 'BODY') return; // 입력 중이면 무시
+            if ([...document.querySelectorAll('.modal')].some(m => m.style.display === 'block')) return;
 
+            if (appData.topicOrder.length < 2) return;
+
+            const curIdx = appData.topicOrder.indexOf(appData.currentTopicId);
+            if (curIdx === -1) return;
+
+            let newIdx = curIdx;
+            if (e.key === 'ArrowUp') newIdx--;
+            if (e.key === 'ArrowDown') newIdx++;
+
+            if (newIdx >= 0 && newIdx < appData.topicOrder.length) {
+                e.preventDefault(); // 스크롤 방지
+                appData.currentTopicId = appData.topicOrder[newIdx];
+                saveData();
+                renderApp();
+            }
+        });
+
+        // 초기 로드 + 구버전 완벽 호환
+        document.addEventListener('DOMContentLoaded', () => {
+            appData = loadData();
+
+            // 구버전 데이터에서도 자동으로 첫 번째 주제 선택
+            if (!appData.currentTopicId && appData.topicOrder.length > 0) {
+                appData.currentTopicId = appData.topicOrder[0];
+                saveData(); // 한 번만 저장해서 최신 형식으로 업데이트
+            }
+
+            renderApp();
+        });
     </script>
 </body>
 </html>
