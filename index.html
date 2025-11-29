@@ -843,12 +843,6 @@
             });
         });
 
-        window.addEventListener('click', (event) => {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
-            }
-        });
-
         document.getElementById('modal-add-topic-btn').addEventListener('click', async () => {
             const newTopicNameInput = document.getElementById('new-topic-name');
             const newTopicName = newTopicNameInput.value.trim();
